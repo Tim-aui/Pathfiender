@@ -32,4 +32,7 @@ class TokenInfo(BaseModel):
 class ProductCreate(BaseModel):
     title: str
     description: str
-    
+
+class ProductUpdate(BaseModel):
+    title: str
+    description: str

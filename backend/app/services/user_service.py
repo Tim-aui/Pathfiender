@@ -26,7 +26,8 @@ async def get_user_by_email(
     except Exception as e:
         await db.rollback()
         raise HTTPException("505", f"Server error {e}")
-    
+
+
 async def get_users(
         db: AsyncSession
 ):
