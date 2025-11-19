@@ -18,8 +18,8 @@ class Users(Base):
 class Products(Base):
     __tablename__ = "products"
 
-    id = Column(String(255), unique=True, nullable=False)
+    id = Column(String(255), primary_key=True, unique=True, nullable=False)
     title = Column(String(255), unique=True, nullable=False)
     description = Column(Text(), unique=True, nullable= False)
-    #creator_id = 
+    creator_id = Column(Integer, ForeignKey("users.id"))
     create_at = Column(Date())

@@ -18,7 +18,7 @@ config = context.config
 target_metadata = Base.metadata
 
 def get_sync_url():
-    url = "postgresql+asyncpg://hacker:Hexisnn99@localhost/pathfiender"
+    url = "postgresql+asyncpg://postgres:0990Hexisnn99@localhost/pathfiender"
     if not url:
         raise ValueError("DATABASE_URL не задана в файле .env или переменных окружения")
     return url.replace('postgresql+asyncpg', 'postgresql')
@@ -37,4 +37,4 @@ def run_migrations_online():
         with context.begin_transaction():
             context.run_migrations()
 
-run_migrations_online()
+run_migrations_online() 

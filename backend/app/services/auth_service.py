@@ -34,7 +34,7 @@ async def create_user(
         return user
     except Exception as e:
         await db.rollback()
-        raise HTTPException("505", f"Server error {e}")
+        raise HTTPException(500, f"Server error {e}")
 
 async def create_tokens_for_user(
     user: LoginUser

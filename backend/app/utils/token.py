@@ -118,12 +118,11 @@ security = HTTPBearer()
 async def get_current_token_payload(
         credentials: HTTPAuthorizationCredentials = Depends(security)
 ) -> dict:
-    
+
     try:
         payload = decode_jwt(
             token=credentials.credentials
         )
-
         return payload
     except Exception as e:
         raise HTTPException(

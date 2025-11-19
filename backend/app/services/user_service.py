@@ -9,7 +9,7 @@ from config.database import get_db
 import os
 from helpers import *
 from utils.token import *
-
+from typing import Annotated
 
 async def get_user_by_email(
     email: str,
@@ -41,8 +41,7 @@ async def get_users(
 async def get_current_auth_user(
         payload: dict = Depends(get_current_token_payload),
         db: AsyncSession = Depends(get_db)
-):  
-    
+) -> Users:  
     token_type = payload.get(TOKEN_TYPE_FIELD)
 
     if token_type != ACCESS_TOKEN_TYPE:
