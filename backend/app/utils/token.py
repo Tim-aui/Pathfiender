@@ -5,9 +5,10 @@ from jwt.exceptions import InvalidTokenError
 from datetime import timedelta, datetime
 from dotenv import load_dotenv
 from fastapi import Depends, HTTPException
-from api.v1.schemas import LoginUser, User
+from api.v1.schemas import LoginUser
 from config.security import http_bearer
 from fastapi import status
+from models import User
 
 load_dotenv()
 

@@ -2,7 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from api.v1.schemas import ProductCreate, ProductUpdate
 from fastapi import Depends, HTTPException, status
-from models import Users, Products
+from models import User, Product
 from uuid import uuid4
 from datetime import date
 from config.database import get_db
@@ -12,12 +12,12 @@ from services.user_service import get_current_auth_user
 async def create_product(
 	product_dict: dict,
 	db: AsyncSession,
-	user: Users,
-) -> Products:
+	user: User,
+) -> Product:
 	try:
 		
 
-		product = Products(
+		product = Product(
 			title = product_dict["title"],
 			description = product_dict["description"],
 			creator_id = user.id,
@@ -44,7 +44,7 @@ async def get_one_product_by_id(
 		try:
 
 			result = await db.execute(
-				select(Products).where(Products.id == int(id))
+				select(Product).where(Product.id == int(id))
 			)
 
 			product = result.scalar_one_or_none()
@@ -66,7 +66,7 @@ async def get_one_product_by_id(
 async def get_one_product_and_update(
 		id: int,
 		patch_data: ProductUpdate,
-		user: Users,
+		user: User,
 		db: AsyncSession
 ):
 	try:
@@ -75,7 +75,7 @@ async def get_one_product_and_update(
 
 
 		result = await db.execute(
-			select(Products).where(Products.id == id)
+			select(Product).where(Product.id == id)
 		)
 
 		product = result.scalar_one_or_none()
@@ -121,12 +121,12 @@ async def get_one_product_and_update(
 	
 async def get_one_and_drop(
 		id: int,
-		user: Users,
+		user: User,
 		db: AsyncSession = Depends(get_db)
 ):
 	try:
 		result = await db.execute(
-			select(Products).where(Products.id == id)
+			select(Product).where(Product.id == id)
 		)
 
 		product = result.scalar_one_or_none()
@@ -170,7 +170,7 @@ async def get_all(
 ):
 	try:
 
-		result = await db.execute(select(Products))
+		result = await db.execute(select(Product))
 
 		product = result.scalars().all()
 

@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
-from ..schemas import TokenInfo, User, UpdateUser
+from ..schemas import TokenInfo, UpdateUser
 from services.user_service import refresh_tokens, auth_user_check_self_info, get_user_and_update, get_user_and_delete
 from config.database import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from models import User
 router = APIRouter()
 
 @router.get("/whoami")

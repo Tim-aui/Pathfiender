@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from fastapi import HTTPException, status
-from models import Users
+from models import User
 from datetime import date
 from utils.password import *
 from utils import token
@@ -16,14 +16,11 @@ async def create_user(
         db: AsyncSession
         ):
     try:
-        user = Users(
-            id=len(await user_service.get_users(db)) + 1,
+        user = User(
             username=user_dict["username"], 
             active = True,
             email=user_dict["email"], 
             password=hash_password(user_dict["password"]), 
-            role=["user"], 
-            create_at=date.today()
         )
 
         db.add(user)

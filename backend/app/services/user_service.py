@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from fastapi import HTTPException, Depends, status
 from api.v1.schemas import TokenInfo, UpdateUser
-from models import Users
+from models import User
 from utils.token import get_current_token_payload
 from config.database import get_db
 import os
@@ -18,7 +18,7 @@ async def get_user_by_email(
     try:
 
         result = await db.execute(
-            select(Users).where(Users.email == email)
+            select(User).where(User.email == email)
         )
 
         return result.scalar_one_or_none()
@@ -32,7 +32,7 @@ async def get_users(
         db: AsyncSession
 ):
     try:
-        result = await db.execute(select(Users))
+        result = await db.execute(select(User))
 
         return result.scalars().all()
     
@@ -42,7 +42,7 @@ async def get_users(
 async def get_current_auth_user(
         payload: dict = Depends(get_current_token_payload),
         db: AsyncSession = Depends(get_db)
-) -> Users:  
+) -> User:  
     token_type = payload.get(TOKEN_TYPE_FIELD)
 
     if token_type != ACCESS_TOKEN_TYPE:
@@ -86,7 +86,7 @@ async def get_current_user_for_refresh(
 
 
 def auth_user_check_self_info(
-    user: Users = Depends(get_current_auth_user)    
+    user: User = Depends(get_current_auth_user)    
 ):
     if user.active:
         return user
@@ -118,7 +118,7 @@ def refresh_tokens(
 
 async def get_user_and_update(
         patch_data: UpdateUser, 
-        user: Users = Depends(get_current_auth_user),
+        user: User = Depends(get_current_auth_user),
         db: AsyncSession = Depends(get_db)
 ):  
     try:
@@ -143,7 +143,7 @@ async def get_user_and_update(
     
 async def get_user_and_delete(
     db: AsyncSession = Depends(get_db),
-    user: Users = Depends(get_current_auth_user)
+    user: User = Depends(get_current_auth_user)
 ):
     
     try:
