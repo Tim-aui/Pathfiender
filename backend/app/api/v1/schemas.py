@@ -38,5 +38,10 @@ class ProductUpdate(BaseModel):
     description: str
 
 class CategoryCreate(BaseModel):
-    name: str
+    title: str
     description: str
+
+class CategoryUpdate(BaseModel):
+    title: str
+    description: str
+    is_active: bool

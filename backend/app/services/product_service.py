@@ -73,20 +73,8 @@ async def get_one_product_and_update(
 
 		update_data = patch_data.dict(exclude_unset=True)
 
+		product = await get_one_product_by_id(id=id, db=db)
 
-		result = await db.execute(
-			select(Product).where(Product.id == id)
-		)
-
-		product = result.scalar_one_or_none()
-
-		if not product:
-			raise HTTPException(
-				status_code=status.HTTP_404_NOT_FOUND,
-				detail={
-					"msg": "Product not found"
-				}
-			)
 
 		if user.id != product.creator_id:
 			raise HTTPException(
@@ -125,25 +113,14 @@ async def get_one_and_drop(
 		db: AsyncSession = Depends(get_db)
 ):
 	try:
-		result = await db.execute(
-			select(Product).where(Product.id == id)
-		)
-
-		product = result.scalar_one_or_none()
+		
+		product = await get_one_product_by_id(id=id, db=db)
 
 		if user.id != product.creator_id:
 			raise HTTPException(
 				status_code=status.HTTP_400_BAD_REQUEST,
 				detail={
 					"msg": "Not permission"
-				}
-			)
-
-		if not product:
-			raise HTTPException(
-				status_code=status.HTTP_400_BAD_REQUEST,
-				detail={
-					"msg": "Incorrect Input data"
 				}
 			)
 		

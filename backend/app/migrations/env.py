@@ -6,12 +6,11 @@ import os
 import sys
 from dotenv import load_dotenv
 
+  
 base_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(base_dir)
 
 from models import Base
-  
-
 
 load_dotenv()
 config = context.config

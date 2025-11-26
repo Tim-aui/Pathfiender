@@ -3,9 +3,8 @@ from datetime import datetime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, DateTime, String, Integer, Text, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
-
+from config.database import engine
 Base = declarative_base()
-
 class User(Base):
     __tablename__ = "users"
 
@@ -18,6 +17,25 @@ class User(Base):
 
     products = relationship("Product", backref="creator")
 
+
+
+
+
+class Category(Base):
+    __tablename__ = "categories"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String(100), nullable=False)
+    slug = Column(String(255))
+    description = Column(Text, nullable=True)
+    is_active = Column(Boolean, default=True)
+    parent_id = Column(Integer, ForeignKey('categories.id'), nullable=True)
+    creator_id = Column(Integer, ForeignKey('users.id'))
+    create_at = Column(DateTime, default=datetime.utcnow())
+
+    parent = relationship("Category", remote_side=[id], backref="subcategories")
+
+
 class Product(Base):
     __tablename__ = "products"
 
@@ -28,18 +46,4 @@ class Product(Base):
     category_id = Column(Integer, ForeignKey("categories.id"))
     create_at = Column(DateTime, default=datetime.utcnow)
 
-    # Используем backref для категории
     category = relationship("Category", backref="products")
-
-class Category(Base):
-    __tablename__ = "categories"
-
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(100), nullable=False)
-    slug = Column(String(100), nullable=False, unique=True)
-    description = Column(Text, nullable=True)
-    is_active = Column(Boolean, default=True)
-    parent_id = Column(Integer, ForeignKey('categories.id'), nullable=True)
-    create_at = Column(DateTime, default=datetime.utcnow)
-
-    parent = relationship("Category", remote_side=[id], backref="subcategories")

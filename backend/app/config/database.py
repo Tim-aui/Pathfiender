@@ -3,7 +3,6 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool
 from dotenv import load_dotenv
 import os
-
 load_dotenv()
 
 
@@ -14,6 +13,7 @@ engine = create_async_engine(DATABASE_URL, poolclass=NullPool)
 
 # Создаем сессию
 async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
 
 # Функция для получения сессии
 async def get_db():
