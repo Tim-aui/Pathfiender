@@ -23,7 +23,7 @@ async def registration(
     user: RegistrationUser,
     db: AsyncSession = Depends(get_db)
     ):
-        return await auth_service.create_user(user_dict=user.dict(), db=db)
+        return await auth_service.create_user(user_payload=user, db=db)
         
 
 @router.post("/login")
