@@ -10,10 +10,15 @@ import os
 from helpers import *
 from utils.token import *
 from typing import Annotated
+import logger as logger_module_configurator
+from error_handling import *
+
+logger = logger_module_configurator.get_logger("user_service")
+
 
 async def get_user_by_email(
     email: str,
-    db: AsyncSession      
+    db: AsyncSession
 ):
     try:
 
@@ -24,9 +29,12 @@ async def get_user_by_email(
         return result.scalar_one_or_none()
 
     except Exception as e:
-        await db.rollback()
-        raise HTTPException("505", f"Server error {e}")
-
+        raise await handle_database_error(
+            db=db,
+            action="get_by_id:user",
+            logger=logger,
+            rollback=False
+        )
 
 async def get_users(
         db: AsyncSession
@@ -37,7 +45,12 @@ async def get_users(
         return result.scalars().all()
     
     except Exception as e:
-        raise HTTPException("505", f"Server error {e}")
+        raise await handle_database_error(
+            db=db,
+            action="get_all:user",
+            logger=logger,
+            rollback=False
+        )
 
 async def get_current_auth_user(
         payload: dict = Depends(get_current_token_payload),
@@ -46,10 +59,7 @@ async def get_current_auth_user(
     token_type = payload.get(TOKEN_TYPE_FIELD)
 
     if token_type != ACCESS_TOKEN_TYPE:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f'invalid token type {token_type!r} excepted {ACCESS_TOKEN_TYPE!r}'
-        )
+        raise handle_token_type_inccorect_error(token_type=token_type, expected_token_type=ACCESS_TOKEN_TYPE, logger=logger)
     
     email: str | None = payload.get("sub")
     user = await get_user_by_email(email, db)

@@ -20,7 +20,7 @@ try:
         print(f"DEBUG [logger.py]: Директория '{logs_dir}' УСПЕШНО СОЗДАНА.")
     else:
         print(f"DEBUG [logger.py]: Директория '{logs_dir}' УЖЕ СУЩЕСТВУЕТ.")
-
+ 
     if os.access(logs_dir, os.W_OK):
         print(f"DEBUG [logger.py]: Есть права на ЗАПИСЬ (W_OK) в директорию '{logs_dir}'.")
     else:

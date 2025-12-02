@@ -5,6 +5,9 @@ from fastapi import HTTPException, status, Depends
 from api.v1.schemas import CategoryCreate, CategoryUpdate
 from datetime import date
 from slugify import slugify
+import logger as logger_module_configurator
+
+logger = logger_module_configurator.get_logger("category_service")
 
 async def get_categories(
     db: AsyncSession

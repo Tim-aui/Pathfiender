@@ -12,8 +12,13 @@ from uuid import uuid4
 from services import user_service
 import logger as logger_module_configurator 
 from services.user_service import get_user_by_email
+from exceptions import UserAlreadyExistsException, DatabaseException
+from error_handling import handle_database_error, handle_user_already_exists_error
 
-logger = logger_module_configurator.get_logger('auth_service')
+LOGGER_USER_SERVICE_NAME = "auth_service"
+
+logger = logger_module_configurator.get_logger(LOGGER_USER_SERVICE_NAME)
+
 async def create_user(
         user_payload: RegistrationUser, 
         db: AsyncSession
@@ -23,12 +28,8 @@ async def create_user(
         exist_user = await get_user_by_email(email=user_payload.email, db=db)
 
         if exist_user:
-            logger.error(f"Попытка регистрации с существующей почтой {user_payload.email}")
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail={"detail": "User is already registered"}
-            )
-
+            raise handle_user_already_exists_error(email=user_payload.email, logger=logger)
+        
         user = User(
             username=user_payload.username,
             active = True,
@@ -47,24 +48,16 @@ async def create_user(
     except HTTPException as e:
         raise
     except Exception as e:
-        error_id = str(uuid4())
-
-        logger.error(
-            f"Error ID: {error_id} | "
-            f"Email: {user_payload.email} | "
-            f"Action: create_product | "
-            f"Error type: {type(e).__name__}",
-            exc_info=True
-        )
-
-        await db.rollback()
-
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
-            detail={
-                "msg": "Internal server error. Please try again later.",
-                "error_id": error_id
-            }
+        context = {
+            "email": user_payload.email,
+            "ErrorType": type(e).__name__
+        }
+        raise await handle_database_error(
+            db=db,
+            action="user:create",
+            context=context,
+            logger=logger,
+            rollback=True
         )
 
 async def create_tokens_for_user(
