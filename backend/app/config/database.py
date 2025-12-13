@@ -9,7 +9,7 @@ load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 # Создаем асинхронный движок
-engine = create_async_engine(DATABASE_URL, poolclass=NullPool)
+engine = create_async_engine(DATABASE_URL, poolclass=NullPool, pool_recycle=300, pool_pre_ping=True)
 
 # Создаем сессию
 async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)

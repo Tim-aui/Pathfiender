@@ -1,11 +1,9 @@
-from fastapi import APIRouter, HTTPException
-from fastapi.security import OAuth2PasswordRequestForm
-from ..schemas import RegistrationUser, LoginUser, TokenInfo
+from fastapi import APIRouter
+from ..schemas import RegistrationUser, LoginUser
 from services import auth_service, user_service
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import Depends
 from config.database import get_db
-from utils import token
 from helpers import *
 from ..validators import auth_validators
 

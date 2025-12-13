@@ -1,12 +1,14 @@
 from fastapi import HTTPException, status
 
-class UserAlreadyExistsException(HTTPException):
-	def __init__(self, email: str):
-		super().__init__(
-			status_code=status.HTTP_400_BAD_REQUEST,
-			detail={"detail": "User is alredy registered"}	
-		)
-
+class UserAlreadyExistsException(Exception):
+	def __init__(
+		self,
+		email: str,
+		status_code=status.HTTP_400_BAD_REQUEST,
+		detail={"detail": "User is already registered"},
+	):
+		self.status_code = status_code
+		self.detail = detail
 		self.email = email
 
 class DatabaseException(HTTPException):

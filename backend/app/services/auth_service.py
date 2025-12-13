@@ -12,53 +12,38 @@ from uuid import uuid4
 from services import user_service
 import logger as logger_module_configurator 
 from services.user_service import get_user_by_email
-from exceptions import UserAlreadyExistsException, DatabaseException
-from error_handling import handle_database_error, handle_user_already_exists_error
+from exceptions.error import *
+
 
 LOGGER_USER_SERVICE_NAME = "auth_service"
 
 logger = logger_module_configurator.get_logger(LOGGER_USER_SERVICE_NAME)
 
-async def create_user(
+async def create_user( 
         user_payload: RegistrationUser, 
         db: AsyncSession
         ):
-    try:
 
-        exist_user = await get_user_by_email(email=user_payload.email, db=db)
 
-        if exist_user:
-            raise handle_user_already_exists_error(email=user_payload.email, logger=logger)
-        
-        user = User(
-            username=user_payload.username,
-            active = True,
-            email=user_payload.email, 
-            password=hash_password(user_payload.password), 
-        )
+    exist_user = await get_user_by_email(email=user_payload.email, db=db)
 
-        db.add(user)
+    if exist_user:
+        raise UserAlreadyExistsException(user_payload.email)
+    
+    user = User(
+        username=user_payload.username,
+        active = True,
+        email=user_payload.email, 
+        password=hash_password(user_payload.password), 
+    )
 
-        await db.commit()
-        await db.refresh(user)
-        
-        logger.info(f"Пользователь создан: {user.id}, email: {user.email}")
+    db.add(user)
 
-        return user
-    except HTTPException as e:
-        raise
-    except Exception as e:
-        context = {
-            "email": user_payload.email,
-            "ErrorType": type(e).__name__
-        }
-        raise await handle_database_error(
-            db=db,
-            action="user:create",
-            context=context,
-            logger=logger,
-            rollback=True
-        )
+    await db.commit()
+    await db.refresh(user)
+    
+    logger.info(f"Пользователь создан: {user.id}, email: {user.email}")
+
 
 async def create_tokens_for_user(
     user: LoginUser

@@ -11,7 +11,6 @@ from helpers import *
 from utils.token import *
 from typing import Annotated
 import logger as logger_module_configurator
-from error_handling import *
 
 logger = logger_module_configurator.get_logger("user_service")
 
@@ -29,12 +28,7 @@ async def get_user_by_email(
         return result.scalar_one_or_none()
 
     except Exception as e:
-        raise await handle_database_error(
-            db=db,
-            action="get_by_id:user",
-            logger=logger,
-            rollback=False
-        )
+        pass
 
 async def get_users(
         db: AsyncSession
@@ -45,12 +39,7 @@ async def get_users(
         return result.scalars().all()
     
     except Exception as e:
-        raise await handle_database_error(
-            db=db,
-            action="get_all:user",
-            logger=logger,
-            rollback=False
-        )
+        pass
 
 async def get_current_auth_user(
         payload: dict = Depends(get_current_token_payload),
@@ -59,7 +48,7 @@ async def get_current_auth_user(
     token_type = payload.get(TOKEN_TYPE_FIELD)
 
     if token_type != ACCESS_TOKEN_TYPE:
-        raise handle_token_type_inccorect_error(token_type=token_type, expected_token_type=ACCESS_TOKEN_TYPE, logger=logger)
+        pass
     
     email: str | None = payload.get("sub")
     user = await get_user_by_email(email, db)
