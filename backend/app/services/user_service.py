@@ -12,149 +12,159 @@ from utils.token import *
 from typing import Annotated
 import logger as logger_module_configurator
 
-logger = logger_module_configurator.get_logger("user_service")
 
+class UserService:
+    def __init__(self):
+        self.logger = logger_module_configurator.get_logger("user_service")
 
-async def get_user_by_email(
-    email: str,
-    db: AsyncSession
-):
-    try:
-
-        result = await db.execute(
-            select(User).where(User.email == email)
-        )
-
-        return result.scalar_one_or_none()
-
-    except Exception as e:
-        pass
-
-async def get_users(
+    async def get_user_by_email(
+        self,
+        email: str,
         db: AsyncSession
-):
-    try:
-        result = await db.execute(select(User))
+    ):
+        try:
 
-        return result.scalars().all()
-    
-    except Exception as e:
-        pass
+            result = await db.execute(
+                select(User).where(User.email == email)
+            )
 
-async def get_current_auth_user(
-        payload: dict = Depends(get_current_token_payload),
-        db: AsyncSession = Depends(get_db)
-) -> User:  
-    token_type = payload.get(TOKEN_TYPE_FIELD)
+            return result.scalar_one_or_none()
 
-    if token_type != ACCESS_TOKEN_TYPE:
-        pass
-    
-    email: str | None = payload.get("sub")
-    user = await get_user_by_email(email, db)
+        except Exception as e:
+            pass
 
-    if user:
-        return user
-    raise HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="token invalid (user not found)"
-    )
+    async def get_users(
+            self,
+            db: AsyncSession
+    ):
+        try:
+            result = await db.execute(select(User))
 
+            return result.scalars().all()
+        
+        except Exception as e:
+            pass
 
-async def get_current_user_for_refresh(
-    payload: dict = Depends(get_current_token_payload),
-    db: AsyncSession = Depends(get_db)
-): 
-    token_type = payload.get(TOKEN_TYPE_FIELD)
+    async def get_current_auth_user(
+            self,
+            payload: dict = Depends(get_current_token_payload),
+            db: AsyncSession = Depends(get_db)
+    ) -> User:  
+        token_type = payload.get(TOKEN_TYPE_FIELD)
 
-    if token_type != REFRESH_TOKEN_TYPE:
+        if token_type != ACCESS_TOKEN_TYPE:
+            pass
+        
+        email: str | None = payload.get("sub")
+        user = await self.get_user_by_email(email, db)
+
+        if user:
+            return user
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f'invalid token type {token_type!r} excepted {REFRESH_TOKEN_TYPE!r}'
+            detail="token invalid (user not found)"
         )
-    
-    email: str | None = payload.get("sub")
-    user = await get_user_by_email(email, db)
-
-    if user:
-        return user
-    raise HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="token invalid (user not found)"
-    )
 
 
-def auth_user_check_self_info(
-    user: User = Depends(get_current_auth_user)    
-):
-    if user.active:
-        return user
-    raise HTTPException(
-        status_code=status.HTTP_403_FORBIDDEN,
-        detail="inactive user"
-    )
-
-def refresh_tokens(
-    current_user: dict = Depends(get_current_user_for_refresh),
-):  
-    try:
-        
-        access_token = create_access_token(current_user)
-        refresh_token = create_refresh_token(current_user)
-
-        return TokenInfo(
-            access_token=access_token,
-            refresh_token=refresh_token,
-            token_type=TOKEN_TYPE
-        )
-    except InvalidTokenError:
-        raise HTTPException(
-        status_code=401,
-        detail="Invalid authentication credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-
-
-async def get_user_and_update(
-        patch_data: UpdateUser, 
-        user: User = Depends(get_current_auth_user),
+    async def get_current_user_for_refresh(
+        self,
+        payload: dict = Depends(get_current_token_payload),
         db: AsyncSession = Depends(get_db)
-):  
-    try:
-        update_data = patch_data.dict(exclude_unset=True)
+    ): 
+        token_type = payload.get(TOKEN_TYPE_FIELD)
 
-        for field, value in update_data.items():
-            if hasattr(user, field):
-                if value != None:
-                    setattr(user, field, value)
+        if token_type != REFRESH_TOKEN_TYPE:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=f'invalid token type {token_type!r} excepted {REFRESH_TOKEN_TYPE!r}'
+            )
+        
+        email: str | None = payload.get("sub")
+        user = await self.get_user_by_email(email, db)
 
-        await db.commit()
-        await db.refresh(user)
-
-        return user
-
-    except Exception as e:
-        await db.rollback() 
+        if user:
+            return user
         raise HTTPException(
-            status_code=500, 
-            detail=f"Ошибка обновления: {str(e)}"
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="token invalid (user not found)"
         )
-    
-async def get_user_and_delete(
-    db: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_auth_user)
-):
-    
-    try:
-        await db.delete(user)
-        await db.commit()
 
-        return {"msg": "User deleted"}
 
-    except Exception as e:
-        await db.rollback() 
+    def auth_user_check_self_info(
+        self,
+        user: User = Depends(get_current_auth_user)    
+    ):
+        if user.active:
+            return user
         raise HTTPException(
-            status_code=500, 
-            detail=f"Ошибка при удаления: {str(e)}"
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="inactive user"
         )
+
+    def refresh_tokens(
+        self,
+        current_user: dict = Depends(get_current_user_for_refresh),
+    ):  
+        try:
+            
+            access_token = create_access_token(current_user)
+            refresh_token = create_refresh_token(current_user)
+
+            return TokenInfo(
+                access_token=access_token,
+                refresh_token=refresh_token,
+                token_type=TOKEN_TYPE
+            )
+        except InvalidTokenError:
+            raise HTTPException(
+            status_code=401,
+            detail="Invalid authentication credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+
+    async def get_user_and_update(
+            self,
+            patch_data: UpdateUser, 
+            user: User = Depends(get_current_auth_user),
+            db: AsyncSession = Depends(get_db)
+    ):  
+        try:
+            update_data = patch_data.dict(exclude_unset=True)
+
+            for field, value in update_data.items():
+                if hasattr(user, field):
+                    if value != None:
+                        setattr(user, field, value)
+
+            await db.commit()
+            await db.refresh(user)
+
+            return user
+
+        except Exception as e:
+            await db.rollback() 
+            raise HTTPException(
+                status_code=500, 
+                detail=f"Ошибка обновления: {str(e)}"
+            )
+        
+    async def get_user_and_delete(
+        self,
+        db: AsyncSession = Depends(get_db),
+        user: User = Depends(get_current_auth_user)
+    ):
+        
+        try:
+            await db.delete(user)
+            await db.commit()
+
+            return {"msg": "User deleted"}
+
+        except Exception as e:
+            await db.rollback() 
+            raise HTTPException(
+                status_code=500, 
+                detail=f"Ошибка при удаления: {str(e)}"
+            )
 

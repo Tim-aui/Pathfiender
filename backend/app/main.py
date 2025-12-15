@@ -12,7 +12,7 @@ from fastapi.responses import JSONResponse
 from fastapi import status
 from fastapi.encoders import jsonable_encoder
 from exceptions.error import UserAlreadyExistsException
-
+from exceptions.factory import *
 
 logger = logger_module_configurator.get_logger('main')
 
@@ -51,13 +51,10 @@ logger.info("Category Router Include")
 
 origins = ["*"]
 
-@app.exception_handler(UserAlreadyExistsException)
-async def exists_http_handler(request, exc):
-    
-    return JSONResponse(
-        content=jsonable_encoder({"detail": exc.detail, "target": exc.email}),
-        status_code=exc.status_code
-	)
+
+
+app.add_exception_handler(UserAlreadyExistsException, ExceptionResponseFactory(401))
+
 
 app.add_middleware(
     CORSMiddleware,

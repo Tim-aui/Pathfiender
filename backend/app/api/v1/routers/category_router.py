@@ -4,8 +4,12 @@ from config.database import get_db
 from ..schemas import CategoryCreate, CategoryUpdate
 from services import category_service, user_service
 from models import User
+from services.user_service import UserService
+
+
 
 router = APIRouter()
+user_service = UserService()
 
 @router.get("/categories")
 async def categories(
