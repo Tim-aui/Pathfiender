@@ -7,8 +7,8 @@ from services.product_service import ProductService
 from services.user_service import UserService
 
 
-def get_auth_service():
-    return AuthService()
+def get_auth_service(db: AsyncSession = Depends(get_db)):
+    return AuthService(db=db)
 
 def get_category_service():
     return CategoryService()

@@ -10,7 +10,8 @@ from utils.password import *
 async def validate_auth_user(
     user: LoginUser,
     db: AsyncSession = Depends(get_db)
-):
+):  
+
     try:
         exist_user = await user_service.get_user_by_email(user.email, db)
 

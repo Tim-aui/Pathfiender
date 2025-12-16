@@ -1,13 +1,13 @@
 from fastapi import APIRouter, Depends
 from ..schemas import ProductCreate, ProductUpdate
 from services import product_service
-from services.user_service import UserService
+from services  import user_service
 from sqlalchemy.ext.asyncio import AsyncSession
 from config.database import get_db
 from models import User
 
 router = APIRouter()
-user_service = UserService()
+
 
 @router.get("/")
 async def products(

@@ -8,146 +8,139 @@ from slugify import slugify
 import logger as logger_module_configurator
 
 
-class CategoryService:
 
-    def __init__(self):
-        self.logger = logger_module_configurator.get_logger("category_service")
+logger = logger_module_configurator.get_logger("category_service")
 
-    async def get_categories(
-        self,
-        db: AsyncSession
-    ):
-        try:
-            result = await db.execute(select(Category))
+async def get_categories(
+    db: AsyncSession
+):
+    try:
+        result = await db.execute(select(Category))
 
-            return result.scalars().all()
+        return result.scalars().all()
 
-        except Exception as e:
+    except Exception as e:
+        raise HTTPException(
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"detail": f"Server Error {e}"}
+        )
+    
+async def create_category(
+    category_dict: dict,
+    user: User,
+    db: AsyncSession,
+):  
+    try:
+
+        slug = slugify(category_dict["title"])
+
+        category = Category(
+            title = category_dict["title"],
+            description = category_dict["description"],
+            slug = slug,
+            creator_id = user.id
+        )
+
+        db.add(category)
+        await db.commit()
+        await db.refresh(category)
+
+        return category
+
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"detail": f"Server Error {e}"}
+        )
+    
+async def get_one_category_by_id(
+    category_id: int,
+    db: AsyncSession,
+):
+    try:
+        category = await db.execute(select(Category).where(Category.id == category_id))
+
+        result = category.scalar_one_or_none()
+
+        if not category:
             raise HTTPException(
-                status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail={"detail": f"Server Error {e}"}
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={"detail": "Category does not exist"}
             )
-        
-    async def create_category(
-        self,
-        category_dict: dict,
+
+        return result
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"detail": f"Interval Server Error {e}"}
+        )
+    
+async def get_one_and_drop(
+        category_id: int,
         user: User,
         db: AsyncSession,
-    ):  
-        try:
+):
+    try:
 
-            slug = slugify(category_dict["title"])
+        category = await get_one_category_by_id(category_id=category_id, db=db)
 
-            category = Category(
-                title = category_dict["title"],
-                description = category_dict["description"],
-                slug = slug,
-                creator_id = user.id
-            )
-
-            db.add(category)
-            await db.commit()
-            await db.refresh(category)
-
-            return category
-
-        except Exception as e:
-            await db.rollback()
+        if category.creator_id != user.id:
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail={"detail": f"Server Error {e}"}
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={"detail": "Not Rules"}
             )
-        
-    async def get_one_category_by_id(
-        self,
+
+        await db.delete(category)
+        await db.commit()   
+
+        return {"msg": "Category delete success"}
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"detail": f"Server Interval Error {e}"}
+        ) 
+    
+async def get_one_and_patch(
         category_id: int,
-        db: AsyncSession,
-    ):
-        try:
-            category = await db.execute(select(Category).where(Category.id == category_id))
+        patch_data: CategoryUpdate,
+        user: User,
+        db: AsyncSession
+):
+    
+    try:
+        
+        category = await get_one_category_by_id(
+            category_id=category_id,
+            db=db
+        )
 
-            result = category.scalar_one_or_none()
-
-            if not category:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail={"detail": "Category does not exist"}
-                )
-
-            return result
-        except Exception as e:
+        if category.creator_id != user.id:
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail={"detail": f"Interval Server Error {e}"}
-            )
-        
-    async def get_one_and_drop(
-            self,
-            category_id: int,
-            user: User,
-            db: AsyncSession,
-    ):
-        try:
-
-            category = await self.get_one_category_by_id(category_id=category_id, db=db)
-
-            if category.creator_id != user.id:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail={"detail": "Not Rules"}
-                )
-
-            await db.delete(category)
-            await db.commit()   
-
-            return {"msg": "Category delete success"}
-
-        except Exception as e:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail={"detail": f"Server Interval Error {e}"}
-            ) 
-        
-    async def get_one_and_patch(
-            self,
-            category_id: int,
-            patch_data: CategoryUpdate,
-            user: User,
-            db: AsyncSession
-    ):
-        
-        try:
-            
-            category = await self.get_one_category_by_id(
-                category_id=category_id,
-                db=db
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={"detail": "Not Rules"}
             )
 
-            if category.creator_id != user.id:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail={"detail": "Not Rules"}
-                )
+        update_data = patch_data.dict(exclude_unset=True)
 
-            update_data = patch_data.dict(exclude_unset=True)
-
-            if "title" in update_data and update_data["title"] != category.title:
-                update_data["slug"] = slugify(update_data["title"])
+        if "title" in update_data and update_data["title"] != category.title:
+            update_data["slug"] = slugify(update_data["title"])
 
 
-            for field, value in update_data.items():
-                if hasattr(category, field):
-                    if value != None:
-                        setattr(category, field, value)
+        for field, value in update_data.items():
+            if hasattr(category, field):
+                if value != None:
+                    setattr(category, field, value)
 
-            await db.commit()
-            await db.refresh(category)
-            
-            return category
+        await db.commit()
+        await db.refresh(category)
+        
+        return category
 
 
-        except Exception as e:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail={"detail": f"Interval Server Error {e}"}
-            )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"detail": f"Interval Server Error {e}"}
+        )
