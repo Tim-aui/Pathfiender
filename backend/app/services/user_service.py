@@ -11,9 +11,12 @@ from helpers import *
 from utils.token import *
 from typing import Annotated
 import logger as logger_module_configurator
+from repositories import user_repo
+from exceptions.handlers import databaseErrorHandler
+from exceptions.error import *
+import logger as logger_module_configurator
 
-
-
+logger = logger_module_configurator.get_logger("user_service")
 
 async def get_user_by_email(
     email: str,
@@ -21,25 +24,19 @@ async def get_user_by_email(
 ):
     try:
 
-        result = await db.execute(
-            select(User).where(User.email == email)
-        )
+        return await user_repo.get_user_by_email(email=email, db=db)
 
-        return result.scalar_one_or_none()
-
-    except Exception as e:
-        pass
+    except Exception as exc:
+        await databaseErrorHandler(exc=exc, logger=logger, db=db, rollback=False)
 
 async def get_users(
         db: AsyncSession
 ):
     try:
-        result = await db.execute(select(User))
-
-        return result.scalars().all()
+        return await user_repo.get_users(db=db)
     
-    except Exception as e:
-        pass
+    except Exception as exc:
+        await databaseErrorHandler(exc=exc, logger=logger, db=db, rollback=False)
 
 async def get_current_auth_user(
         payload: dict = Depends(get_current_token_payload),
@@ -48,17 +45,16 @@ async def get_current_auth_user(
     token_type = payload.get(TOKEN_TYPE_FIELD)
 
     if token_type != ACCESS_TOKEN_TYPE:
-        pass
+        logger.error(f"ожидался {ACCESS_TOKEN_TYPE} передан {REFRESH_TOKEN_TYPE}")
+        raise TokenTypeInccorectException()
     
     email: str | None = payload.get("sub")
-    user = await get_user_by_email(email, db)
+    user = await user_repo.get_user_by_email(email=email, db=db)
 
     if user:
         return user
-    raise HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="token invalid (user not found)"
-    )
+    
+    raise UnauthorizedException()
 
 
 async def get_current_user_for_refresh(
@@ -68,20 +64,15 @@ async def get_current_user_for_refresh(
     token_type = payload.get(TOKEN_TYPE_FIELD)
 
     if token_type != REFRESH_TOKEN_TYPE:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f'invalid token type {token_type!r} excepted {REFRESH_TOKEN_TYPE!r}'
-        )
+        logger.error(f"Ожидался {REFRESH_TOKEN_TYPE} передан {ACCESS_TOKEN_TYPE}")
+        raise TokenTypeInccorectException()
     
     email: str | None = payload.get("sub")
-    user = await get_user_by_email(email, db)
+    user = await user_repo.get_user_by_email(email, db)
 
     if user:
         return user
-    raise HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="token invalid (user not found)"
-    )
+    raise NotFoundException()
 
 
 def auth_user_check_self_info(
@@ -89,10 +80,7 @@ def auth_user_check_self_info(
 ):
     if user.active:
         return user
-    raise HTTPException(
-        status_code=status.HTTP_403_FORBIDDEN,
-        detail="inactive user"
-    )
+    raise InactiveUserException()
 
 def refresh_tokens(
     current_user: dict = Depends(get_current_user_for_refresh),
@@ -120,25 +108,21 @@ async def get_user_and_update(
         user: User = Depends(get_current_auth_user),
         db: AsyncSession = Depends(get_db)
 ):  
+    
+    update_data = patch_data.dict(exclude_unset=True)
+
+    for field, value in update_data.items():
+        if hasattr(user, field):
+            if value != None:
+                setattr(user, field, value)
+
     try:
-        update_data = patch_data.dict(exclude_unset=True)
-
-        for field, value in update_data.items():
-            if hasattr(user, field):
-                if value != None:
-                    setattr(user, field, value)
-
-        await db.commit()
-        await db.refresh(user)
-
+        
+        await user_repo.patch(db=db, user=user)
         return user
 
-    except Exception as e:
-        await db.rollback() 
-        raise HTTPException(
-            status_code=500, 
-            detail=f"Ошибка обновления: {str(e)}"
-        )
+    except Exception as exc:
+        await databaseErrorHandler(exc=exc, logger=logger, db=db)
     
 async def get_user_and_delete(
     db: AsyncSession = Depends(get_db),
@@ -146,15 +130,10 @@ async def get_user_and_delete(
 ):
     
     try:
-        await db.delete(user)
-        await db.commit()
-
+        await user_repo.delete(db=db, user=user)
+        logger.info(f"Пользователь {user.id} успешно удален")
         return {"msg": "User deleted"}
 
-    except Exception as e:
-        await db.rollback() 
-        raise HTTPException(
-            status_code=500, 
-            detail=f"Ошибка при удаления: {str(e)}"
-        )
+    except Exception as exc:
+        await databaseErrorHandler(exc=exc, logger=logger, db=db)
 

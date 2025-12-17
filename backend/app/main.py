@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi import status
 from fastapi.encoders import jsonable_encoder
-from exceptions.error import UserAlreadyExistsException
+from exceptions.error import *
 from exceptions.factory import *
 
 logger = logger_module_configurator.get_logger('main')
@@ -54,6 +54,12 @@ origins = ["*"]
 
 
 app.add_exception_handler(UserAlreadyExistsException, ExceptionResponseFactory(401))
+app.add_exception_handler(DatabaseException, ExceptionResponseFactory(500))
+app.add_exception_handler(InactiveUserException, ExceptionResponseFactory(400))
+app.add_exception_handler(TokenTypeInccorectException, ExceptionResponseFactory(400))
+app.add_exception_handler(UnauthorizedException, ExceptionResponseFactory(401))
+app.add_exception_handler(NotPermissionException, ExceptionResponseFactory(403))
+app.add_exception_handler(NotFoundException,ExceptionResponseFactory(400))
 
 
 app.add_middleware(

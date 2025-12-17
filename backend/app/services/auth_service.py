@@ -10,6 +10,7 @@ import logger as logger_module_configurator
 from exceptions.error import *
 from repositories import user_repo, auth_repo
 from config.database import get_db
+from exceptions.handlers import databaseErrorHandler
 
 LOGGER_USER_SERVICE_NAME = "auth_service"
 
@@ -19,7 +20,7 @@ logger = logger_module_configurator.get_logger(LOGGER_USER_SERVICE_NAME)
 
 async def create_user(
         user_payload: RegistrationUser, 
-        db: AsyncSession = Depends(get_db)
+        db: AsyncSession
     ):
 
 
@@ -36,10 +37,14 @@ async def create_user(
                 password=hash_password(user_payload.password), 
             )
 
-    new_user = await auth_repo.create_user(user=user, db=db)
-    
-    logger.info(f"Пользователь создан: {user.id}, email: {user.email}")
-    return new_user
+    try:
+        new_user = await auth_repo.create_user(user=user, db=db)
+        logger.info(f"Пользователь создан: {user.id}, email: {user.email}")
+        
+        return new_user
+
+    except Exception as exc:
+        await databaseErrorHandler(db=db, exc=exc, logger=logger)
 
 async def create_tokens_for_user(
     user: LoginUser
@@ -53,8 +58,5 @@ async def create_tokens_for_user(
             refresh_token=refresh_token,
             token_type=TOKEN_TYPE
         )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_505_HTTP_VERSION_NOT_SUPPORTED,
-            detail=f"Server error {e}"
-        )
+    except Exception as exc:
+        await databaseErrorHandler(exc=exc, logger=logger, rollback=False)

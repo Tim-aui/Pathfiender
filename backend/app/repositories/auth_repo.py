@@ -7,7 +7,10 @@ from fastapi import Depends
 
 
 async def create_user(db: AsyncSession, user: User):
-    with db.session.begin():
-        db.session.add(user)
+
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+
     return user
     

@@ -23,3 +23,17 @@ async def get_users(
     return result.scalars().all()
     
         
+async def patch(
+    db: AsyncSession,
+    user: User
+):
+    
+    await db.commit()
+    await db.refresh(user)
+
+async def delete(
+    db: AsyncSession,
+    user: User
+):
+    await db.delete(user)
+    await db.commit()

@@ -27,9 +27,9 @@ async def create(
         user=current_user
     )
 
-@router.get("/{id}")
-async def product(id: str, db: AsyncSession = Depends(get_db)):
-    return await product_service.get_one_product_by_id(id=id, db=db)
+@router.get("/{product_id}")
+async def product(product_id: int, db: AsyncSession = Depends(get_db)):
+    return await product_service.get_one_product_by_id(product_id=product_id, db=db)
 
 @router.patch("/update/{product_id}")
 async def update_product(
@@ -39,7 +39,7 @@ async def update_product(
     db: AsyncSession = Depends(get_db)
 ):
     return await product_service.get_one_product_and_update(
-        id=product_id, 
+        product_id=product_id, 
         patch_data=product_data,
         db=db,
         user=current_user
@@ -53,7 +53,7 @@ async def delete_product(
     db: AsyncSession = Depends(get_db)
 ):
     return await product_service.get_one_and_drop(
-        id=product_id, 
+        product_id=product_id, 
         db=db,
         user=current_user
     )

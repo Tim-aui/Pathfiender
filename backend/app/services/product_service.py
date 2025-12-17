@@ -6,6 +6,12 @@ from models import User, Product
 from uuid import uuid4
 from datetime import date
 from config.database import get_db
+from repositories import product_repo
+import logger as logger_module_configurator
+from exceptions.handlers import databaseErrorHandler
+from exceptions.error import *
+
+logger = logger_module_configurator.get_logger("product_service")
 
 
 async def create_product(
@@ -13,148 +19,105 @@ async def create_product(
 	db: AsyncSession,
 	user: User,
 ) -> Product:
-	try:
+
+
 	
-		
 
-		product = Product(
-			title = product_dict["title"],
-			description = product_dict["description"],
-			creator_id = user.id,
-			create_at = date.today()
-		)
+	product = Product(
+		title = product_dict["title"],
+		description = product_dict["description"],
+		creator_id = user.id,
+		create_at = date.today()
+	)
 
-		db.add(product)
+	try:
 		
-		await db.commit()
-		await db.refresh(product)
+		product = await product_repo.create(db=db, product=product)
+
+		logger.info(f"Товар успешно создан {product.id}")
 
 		return product
-	
-	except Exception as e:
-		await db.rollback()
-		raise HTTPException(
-			status_code= status.HTTP_505_HTTP_VERSION_NOT_SUPPORTED,
-			detail={"msg": f"Server Interval error {e}"} 
-		)
+
+	except Exception as exc:
+		await databaseErrorHandler(db=db, exc=exc, logger=logger)
+
+		
 async def get_one_product_by_id(
-		id: str,
+		product_id: int,
 		db: AsyncSession,
 	):
-		try:
+	
+	product = await product_repo.get_one_byId(db=db, product_id=product_id)
 
-			result = await db.execute(
-				select(Product).where(Product.id == int(id))
-			)
+	if not product:
+		logger.error(f"Не удалось найти товар {product_id}")
+		raise NotFoundException()
 
-			product = result.scalar_one_or_none()
+	return product
 
-			if not product:
-				raise HTTPException(
-					status_code=status.HTTP_400_BAD_REQUEST,
-					detail={"msg": "Incorrect input data"}
-				)
-
-			return product
-
-		except Exception as e:
-			raise HTTPException(
-				status_code=status.HTTP_505_HTTP_VERSION_NOT_SUPPORTED,
-				detail={"msg": f"Interval Server Error {e}"}
-			)
 
 async def get_one_product_and_update(
-		id: int,
+		product_id: int,
 		patch_data: ProductUpdate,
 		user: User,
 		db: AsyncSession
 ):
+
+
+	update_data = patch_data.dict(exclude_unset=True)
+
+	product = await product_repo.get_one_byId(product_id=product_id, db=db)
+
+
+	if user.id != product.creator_id:
+		raise NotPermissionException()
+
+	for field, value in update_data.items():
+		if hasattr(product, field):
+			if value != None:
+				setattr(product, field, value)
+
 	try:
-
-		update_data = patch_data.dict(exclude_unset=True)
-
-		product = await get_one_product_by_id(id=id, db=db)
-
-
-		if user.id != product.creator_id:
-			raise HTTPException(
-				status_code=status.HTTP_400_BAD_REQUEST,
-				detail={
-					"msg": "Not permission"
-				}
-			)
-
-		for field, value in update_data.items():
-			if hasattr(product, field):
-				if value != None:
-					setattr(product, field, value)
-
-		await db.commit()
-		await db.refresh(product)
-		
+		await product_repo.patch(db=db, product=product)
+		logger.info(f"Товар {product.id} успешно обновлен")
 		return product
 
-	except HTTPException:
-		await db.rollback()
-		raise
-	except Exception as e:
-		await db.rollback()
-		print(f"Неожиданная ошибка: {str(e)}")
-		raise HTTPException(
-			status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-			detail={
-				"msg": "Внутренняя ошибка сервера"
-			}
-		)
+	except Exception as exc:
+		await databaseErrorHandler(exc=exc, logger=logger, db=db, rollback=False)
 	
 async def get_one_and_drop(
-		id: int,
+		product_id: int,
 		user: User,
 		db: AsyncSession = Depends(get_db)
 ):
+	
+	
+	product = await get_one_product_by_id(product_id=product_id, db=db)
+
+	if user.id != product.creator_id:
+		raise NotPermissionException()
+	
 	try:
-		
-		product = await get_one_product_by_id(id=id, db=db)
 
-		if user.id != product.creator_id:
-			raise HTTPException(
-				status_code=status.HTTP_400_BAD_REQUEST,
-				detail={
-					"msg": "Not permission"
-				}
-			)
-		
-		await db.delete(product)
-		await db.commit()
-
+		await product_repo.delete(db=db, product=product)
+		logger.info(f"Товар {product.id} успешно удален")
 		return {"msg": "Delete success"}
 
-	except HTTPException:
-		await db.rollback()
-		raise
-	except Exception as e:
-		await db.rollback()
-		print(f"Неожиданная ошибка: {str(e)}")
-		raise HTTPException(
-			status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-			detail={
-				"msg": "Внутренняя ошибка сервера"
-			}
-		)
+	except Exception as exc:
+		await databaseErrorHandler(exc=exc, logger=logger, db=db, rollback=False)
+
+	
+
+	
 	
 async def get_all(
 		db: AsyncSession = Depends(get_db)
 ):
 	try:
 
-		result = await db.execute(select(Product))
+		products = await product_repo.get_all(db=db)
 
-		product = result.scalars().all()
+		return products
 
-		return product
-
-	except Exception as e:
-		raise HTTPException(
-			status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-			detail={"msg": f"Interval Server Error {e}"}
-		)
+	except Exception as exc:
+		await databaseErrorHandler(exc=exc, logger=logger, db=db, rollback=False)
