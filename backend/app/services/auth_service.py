@@ -11,6 +11,7 @@ from exceptions.error import *
 from repositories import user_repo, auth_repo
 from config.database import get_db
 from exceptions.handlers import databaseErrorHandler
+from utils.password import passwordValidator
 
 LOGGER_USER_SERVICE_NAME = "auth_service"
 
@@ -24,11 +25,15 @@ async def create_user(
     ):
 
 
+    
+    
     exist_user = await user_repo.get_user_by_email(email=user_payload.email, db=db)
 
     if exist_user:
         logger.error(f"Пользователь с почтой {user_payload.email} уже создан")
         raise UserAlreadyExistsException()
+
+    passwordValidator(user_payload.password)
 
     user = User(
                 username=user_payload.username,

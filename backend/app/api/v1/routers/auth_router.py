@@ -7,6 +7,7 @@ from services import auth_service
 from sqlalchemy.ext.asyncio import AsyncSession
 from config.database import get_db
 
+
 router = APIRouter() 
 
 @router.post("/registration")
@@ -14,6 +15,7 @@ async def registration(
     user: RegistrationUser,
     db: AsyncSession = Depends(get_db)
     ):
+        
         return await auth_service.create_user(user_payload=user, db=db)
         
 
@@ -21,6 +23,7 @@ async def registration(
 async def login(
     user: LoginUser = Depends(auth_validators.validate_auth_user),
 ):  
+    
     
     return await auth_service.create_tokens_for_user(user)
     

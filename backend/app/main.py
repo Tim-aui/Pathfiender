@@ -60,6 +60,7 @@ app.add_exception_handler(TokenTypeInccorectException, ExceptionResponseFactory(
 app.add_exception_handler(UnauthorizedException, ExceptionResponseFactory(401))
 app.add_exception_handler(NotPermissionException, ExceptionResponseFactory(403))
 app.add_exception_handler(NotFoundException,ExceptionResponseFactory(400))
+app.add_exception_handler(PasswordValidationException,ExceptionResponseFactory(400))
 
 
 app.add_middleware(

@@ -33,4 +33,9 @@ class UnauthorizedException(Exception):
 class InactiveUserException(Exception):
 	def __init__(self):
 		self.detail = f"Inactive User"
-		
+
+
+class PasswordValidationException(Exception):
+
+	def __init__(self, problems: list):
+		self.detail = problems
